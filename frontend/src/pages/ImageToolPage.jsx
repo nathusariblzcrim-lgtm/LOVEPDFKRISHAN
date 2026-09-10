@@ -19,6 +19,21 @@ const CHECKER = {
 
 const fmtSize = (b) => (b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(2)} MB` : `${(b / 1024).toFixed(0)} KB`);
 
+// Measures an element's width live (resize + step changes) so fixed-size
+// preview stages shrink to fit small/mobile screens instead of overflowing.
+const useMeasure = () => {
+  const [w, setW] = useState(0);
+  const ref = useCallback((node) => {
+    if (!node) return undefined;
+    const update = () => setW(node.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w];
+};
+
 const downloadBlob = (blob, name) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -160,6 +175,7 @@ const RemoveBgTool = () => {
   const bgInputRef = useRef(null);
   const stageRef = useRef(null);
   const dragRef = useRef(null);
+  const [bgWrapRef, bgWrapW] = useMeasure();
 
   const onFiles = (list) => {
     const f = list[0];
@@ -273,7 +289,7 @@ const RemoveBgTool = () => {
 
   if (cutout) {
     const AR = (cutout.w || 1) / (cutout.h || 1);
-    let stageW = 420, stageH = stageW / AR;
+    let stageW = Math.max(200, Math.min(420, (bgWrapW || 420) - 26)), stageH = stageW / AR;
     const maxH = 460;
     if (stageH > maxH) { stageH = maxH; stageW = stageH * AR; }
     const s = Math.max(0.3, Math.min(1, subjectScale / 100));
@@ -283,9 +299,9 @@ const RemoveBgTool = () => {
     return (
       <Panel>
         <div className="grid lg:grid-cols-2 gap-6 items-start" data-testid="removebg-result">
-          {/* Preview stage — sticky so it stays visible; drag the subject to move it */}
-          <div className="sticky top-20 self-start z-10">
-            <div className="flex justify-center rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-3">
+          {/* Preview stage — sticky on desktop so it stays visible; drag the subject to move it */}
+          <div className="lg:sticky lg:top-20 self-start z-10">
+            <div ref={bgWrapRef} className="flex justify-center rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-3">
               <div ref={stageRef} data-testid="removebg-stage"
                 className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 select-none"
                 style={{ width: stageW, height: stageH, ...(bgMode === 'transparent' ? CHECKER : bgMode === 'color' ? { backgroundColor: bgColor } : { backgroundColor: '#ffffff' }) }}>
@@ -499,6 +515,8 @@ const PhotoTextTool = () => {
   const dragRef = useRef(null);
   const cropStageRef = useRef(null);
   const cropDrag = useRef(null);
+  const [stageWrapRef, stageWrapW] = useMeasure();   // edit-step stage container width
+  const [cropWrapRef, cropWrapW] = useMeasure();     // crop-step container width
   // Extra white band height as a fraction of the photo WIDTH, driven by the
   // sizes of the texts that actually have content (so the band is only as tall
   // as the text needs). With no text yet, keep a strip for handwriting.
@@ -605,7 +623,8 @@ const PhotoTextTool = () => {
     if (!stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
     const t = which === 'name' ? name : dob;
-    dragRef.current = { which, mode, startX: e.clientX, startY: e.clientY, ox: t.pos.x, oy: t.pos.y, size0: t.size, sx0: t.scaleX || 1, rw: rect.width, rh: rect.height };
+    const p = effPos(which, t); // drag must start from the VISIBLE position (auto-centred text has a stale stored pos — using it made the text jump to the image centre on click)
+    dragRef.current = { which, mode, startX: e.clientX, startY: e.clientY, ox: p.x, oy: p.y, size0: t.size, sx0: t.scaleX || 1, rw: rect.width, rh: rect.height };
     window.addEventListener('pointermove', onDrag);
     window.addEventListener('pointerup', endDrag);
   };
@@ -649,13 +668,13 @@ const PhotoTextTool = () => {
 
   // ---- Step 2: crop (drag the grid box; no zoom) ----
   if (step === 'crop') {
-    const maxW = 460, maxH = 400;
+    const maxW = Math.min(460, cropWrapW || 460), maxH = 400;
     let dispW = maxW, dispH = (maxW * natural.h) / natural.w;
     if (dispH > maxH) { dispH = maxH; dispW = (maxH * natural.w) / natural.h; }
     const corner = { nw: { left: -9, top: -9, cursor: 'nwse-resize' }, ne: { right: -9, top: -9, cursor: 'nesw-resize' }, sw: { left: -9, bottom: -9, cursor: 'nesw-resize' }, se: { right: -9, bottom: -9, cursor: 'nwse-resize' } };
     return (
       <Panel>
-        <div className="flex justify-center">
+        <div ref={cropWrapRef} className="flex justify-center">
           <div ref={cropStageRef} data-testid="phototext-crop" className="relative select-none touch-none rounded-lg overflow-hidden bg-slate-900" style={{ width: dispW, height: dispH }}>
             <img src={src} alt="to crop" draggable={false} className="absolute inset-0 w-full h-full select-none pointer-events-none" />
             <div onPointerDown={(e) => startCrop('move', null, e)} data-testid="crop-box"
@@ -683,7 +702,7 @@ const PhotoTextTool = () => {
 
   // ---- Step 3: edit (draggable text) ----
   const AR = photo.w / photo.h;
-  let stageW = 340, imgH = stageW / AR;
+  let stageW = Math.max(200, Math.min(340, (stageWrapW || 340) - 26)), imgH = stageW / AR;
   const maxImgH = 430;
   if (imgH > maxImgH) { imgH = maxImgH; stageW = imgH * AR; }
   const extraPx = extraWhite ? stageW * whiteBandFrac() : 0;
@@ -693,7 +712,7 @@ const PhotoTextTool = () => {
     const p = effPos(which, t);
     return (
       <div onPointerDown={(e) => startDrag(which, 'move', e)} data-testid={`drag-${which}`}
-        className="absolute touch-none select-none cursor-move whitespace-nowrap px-1.5 py-0.5 rounded-md border border-dashed border-rose-400/80"
+        className="group absolute touch-none select-none cursor-move whitespace-nowrap px-1.5 py-0.5 rounded-md border border-dashed border-rose-400/80"
         style={{
           left: p.x * stageW, top: p.y * stageH, transform: `translate(-50%, -50%) scaleX(${t.scaleX || 1})`,
           fontFamily: font, fontSize: (stageW * t.size) / 100, lineHeight: 1,
@@ -703,9 +722,9 @@ const PhotoTextTool = () => {
         }}>
         {t.text.trim()}
         <span data-testid={`resize-${which}`} onPointerDown={(e) => startDrag(which, 'resize', e)}
-          title="Drag to resize (chhota / bada)" className="absolute -bottom-2.5 -right-2.5 w-4 h-4 rounded-full bg-rose-500 border-2 border-white shadow-md cursor-nwse-resize" />
+          title="Drag to resize (chhota / bada)" className="absolute -bottom-1.5 -right-1.5 w-3 h-3 rounded-full bg-rose-500 border border-white shadow cursor-nwse-resize opacity-0 group-hover:opacity-100 transition-opacity" />
         <span data-testid={`stretch-${which}`} onPointerDown={(e) => startDrag(which, 'stretch', e)}
-          title="Drag left/right to stretch (lamba / patla)" className="absolute top-1/2 -right-4 -translate-y-1/2 w-6 h-3 rounded-full bg-sky-500 border border-white shadow-md cursor-ew-resize" />
+          title="Drag left/right to stretch (lamba / patla)" className="absolute top-1/2 -right-3 -translate-y-1/2 w-4 h-2 rounded-full bg-sky-500 border border-white shadow cursor-ew-resize opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     );
   };
@@ -723,9 +742,9 @@ const PhotoTextTool = () => {
   return (
     <Panel>
       <div className="grid lg:grid-cols-2 gap-6 items-start" data-testid="phototext-edit">
-        {/* Sticky preview stage */}
-        <div className="sticky top-20 self-start z-10">
-          <div className="flex justify-center rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-3">
+        {/* Sticky preview stage (desktop only — stacks naturally on mobile) */}
+        <div className="lg:sticky lg:top-20 self-start z-10">
+          <div ref={stageWrapRef} className="flex justify-center rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-3">
             <div ref={stageRef} data-testid="phototext-stage" className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 bg-white select-none" style={{ width: stageW, height: stageH }}>
               <img src={photo.url} alt="photo" draggable={false} className="absolute top-0 left-0 pointer-events-none select-none" style={{ width: stageW, height: imgH }} />
               {extraWhite && <div className="absolute left-0 w-full bg-white" style={{ top: imgH, height: extraPx }} />}
