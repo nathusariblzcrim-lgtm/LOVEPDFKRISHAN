@@ -122,6 +122,37 @@ export default function ResizeTool() {
     if (keepRatio && first && hU > 0) setWidth(String(r2((hU * first.w) / first.h)));
   };
 
+  // Unit change: convert the typed values into the new unit; if nothing typed,
+  // AUTO-FILL the photo's current size in the new unit (e.g. 3000px = 25.4cm).
+  const changeUnit = (u) => {
+    if (u === unit) return;
+    const conv = (v) => {
+      const n = parseFloat(v);
+      return n > 0 ? String(r2(fromPx(toPx(n, unit, dpi), u, dpi))) : '';
+    };
+    const w = conv(width), h = conv(height);
+    if (w || h) { setWidth(w); setHeight(h); }
+    else if (first) {
+      setWidth(String(r2(fromPx(first.w, u, dpi))));
+      setHeight(String(r2(fromPx(first.h, u, dpi))));
+    }
+    setUnit(u);
+  };
+
+  // Live preview: what the output will look like with the chosen size/unit.
+  const wU = parseFloat(width), hU = parseFloat(height);
+  let prevW = 0, prevH = 0;
+  if (first) {
+    if (keepRatio) {
+      if (wU > 0) { prevW = Math.max(1, Math.round(toPx(wU, unit, dpi))); prevH = Math.max(1, Math.round((prevW * first.h) / first.w)); }
+      else if (hU > 0) { prevH = Math.max(1, Math.round(toPx(hU, unit, dpi))); prevW = Math.max(1, Math.round((prevH * first.w) / first.h)); }
+    } else if (wU > 0 || hU > 0) {
+      prevW = Math.max(1, Math.round(toPx(wU > 0 ? wU : hU, unit, dpi)));
+      prevH = Math.max(1, Math.round(toPx(hU > 0 ? hU : wU, unit, dpi)));
+    }
+  }
+  const previewAR = prevW > 0 && prevH > 0 ? prevW / prevH : first ? first.w / first.h : 1;
+
   const applyPreset = (p) => {
     setUnit(p.unit); setKeepRatio(false);
     setWidth(String(p.w)); setHeight(String(p.h));
@@ -211,8 +242,24 @@ export default function ResizeTool() {
   ) : (
     <Panel>
       <div className="grid lg:grid-cols-2 gap-6 items-start">
-        {/* Left: selected images (sticky on desktop — no up/down scrolling) */}
+        {/* Left: live preview + selected images (sticky on desktop — no up/down scrolling) */}
         <div className="lg:sticky lg:top-20 self-start">
+          {/* Live preview — adjusts to the chosen PX/CM/MM/Inch size */}
+          {first && (
+            <div className="mb-4">
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-black/20 p-2 grid place-items-center">
+                <div data-testid="resize-preview" className="relative overflow-hidden rounded-md bg-white dark:bg-white/5 mx-auto"
+                  style={{ aspectRatio: `${previewAR}`, width: previewAR >= 1 ? '100%' : 'auto', height: previewAR >= 1 ? 'auto' : '260px', maxWidth: '100%', maxHeight: '280px' }}>
+                  <img src={first.url} alt="preview" className={`w-full h-full ${keepRatio ? 'object-contain' : 'object-fill'}`} draggable={false} />
+                </div>
+              </div>
+              <p className="hint text-center mt-1.5" data-testid="resize-preview-size">
+                Current: {first.w} × {first.h} px
+                {prevW > 0 && <> → Output: <b className="text-rose-500">{prevW} × {prevH} px</b>{unit !== 'px' && <> ({r2(fromPx(prevW, unit, dpi))} × {r2(fromPx(prevH, unit, dpi))} {unit === 'in' ? 'inch' : unit} @ {dpi} DPI)</>}</>}
+                {files.length > 1 && <> · preview shows first image</>}
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium">{files.length} image{files.length > 1 ? 's' : ''} added</p>
             <label className="text-xs font-semibold text-rose-500 cursor-pointer inline-flex items-center gap-1">
@@ -222,8 +269,8 @@ export default function ResizeTool() {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {files.map((it, i) => (
-              <div key={`${it.file.name}-${i}`} className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
-                <img src={it.url} alt="" className="w-full h-20 object-cover" />
+              <div key={`${it.file.name}-${i}`} className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-black/20">
+                <img src={it.url} alt="" className="w-full h-20 object-contain" />
                 <span className="absolute bottom-0 inset-x-0 text-[9px] text-center bg-black/55 text-white py-0.5">{it.w}×{it.h}</span>
                 <button data-testid={`resize-remove-${i}`} onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 grid place-items-center w-5 h-5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-rose-500 transition-opacity"><X className="w-3 h-3" /></button>
               </div>
@@ -239,7 +286,7 @@ export default function ResizeTool() {
         <label className="block text-sm font-medium mb-2">Resize in</label>
         <div className="flex gap-2 flex-wrap">
           {UNITS.map((u) => (
-            <button key={u.id} data-testid={`unit-${u.id}`} onClick={() => { setUnit(u.id); setWidth(''); setHeight(''); }}
+            <button key={u.id} data-testid={`unit-${u.id}`} onClick={() => changeUnit(u.id)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${unit === u.id ? 'btn-primary text-white border-transparent' : 'border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5'}`}>{u.label}</button>
           ))}
           {unit !== 'px' && (

@@ -131,6 +131,9 @@
 ##         - comment: "Added scaleX stretch (blue side dot + Stretch slider 50-300%) applied in preview transform AND canvas download (ctx.scale). Pink corner dot resizes (size slider max raised: name 20, dob 18). Text auto-centers in white band (even distribution 1..n/(n+1)) until user drags it (manual flag); size slider changes re-center automatically; Re-center button restores auto. Playwright verified: stretch dot 185->331px @180%, slider 200% -> 370px, center diff 1px after size change, manual drag + re-center OK, download OK."
 ##         - working: true
 ##         - working: true
+##         - working: true
+##         - agent: "main"
+##         - comment: "Round 2: (1) Live preview added (left column, sticky) — adjusts to chosen PX/CM/MM/Inch size; aspect-on shows full image (object-contain) with auto ratio, aspect-off stretches to exact target shape (AR verified 0.778 for 3.5x4.5cm). Preview line shows 'Current: 3000x2000 px -> Output: 413x531 px (3.5x4.5 cm @ 300 DPI)'. (2) Current photo pixels auto-fill: on upload AND on unit change values convert (3000x2000px -> 25.4x16.93cm @300DPI verified). (3) Thumbnails now object-contain (full image, no crop). Two-column layout (images+preview left sticky, controls right) verified desktop + mobile 390px no overflow."
 ##   - task: "Resize Image Pixel/CM tool (Pi7-style reference)"
 ##     implemented: true
 ##     working: true
