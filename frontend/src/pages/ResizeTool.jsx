@@ -205,32 +205,35 @@ export default function ResizeTool() {
     );
   }
 
-  /* -------- main form -------- */
+  /* -------- main form (two-column like Photo Name & DOB: images left, controls right) -------- */
   return !files.length ? (
     <FileDrop accept="image/*" multiple onFiles={onFiles} label="Select images" hint={`Select or drag & drop images here · up to ${MAX_FILES} images at once`} />
   ) : (
     <Panel>
-      {/* selected files */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium">{files.length} image{files.length > 1 ? 's' : ''} added</p>
-          <label className="text-xs font-semibold text-rose-500 cursor-pointer inline-flex items-center gap-1">
-            <Icons.Plus className="w-3.5 h-3.5" /> Add more
-            <input data-testid="resize-add-more" type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const fl = Array.from(e.target.files || []); if (fl.length) onFiles(fl); e.target.value = ''; }} />
-          </label>
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        {/* Left: selected images (sticky on desktop — no up/down scrolling) */}
+        <div className="lg:sticky lg:top-20 self-start">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium">{files.length} image{files.length > 1 ? 's' : ''} added</p>
+            <label className="text-xs font-semibold text-rose-500 cursor-pointer inline-flex items-center gap-1">
+              <Icons.Plus className="w-3.5 h-3.5" /> Add more
+              <input data-testid="resize-add-more" type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const fl = Array.from(e.target.files || []); if (fl.length) onFiles(fl); e.target.value = ''; }} />
+            </label>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {files.map((it, i) => (
+              <div key={`${it.file.name}-${i}`} className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
+                <img src={it.url} alt="" className="w-full h-20 object-cover" />
+                <span className="absolute bottom-0 inset-x-0 text-[9px] text-center bg-black/55 text-white py-0.5">{it.w}×{it.h}</span>
+                <button data-testid={`resize-remove-${i}`} onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 grid place-items-center w-5 h-5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-rose-500 transition-opacity"><X className="w-3 h-3" /></button>
+              </div>
+            ))}
+          </div>
+          <p className="hint mt-2">Note:- You can resize {MAX_FILES} images at once.</p>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-          {files.map((it, i) => (
-            <div key={`${it.file.name}-${i}`} className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
-              <img src={it.url} alt="" className="w-full h-16 object-cover" />
-              <span className="absolute bottom-0 inset-x-0 text-[9px] text-center bg-black/55 text-white py-0.5">{it.w}×{it.h}</span>
-              <button data-testid={`resize-remove-${i}`} onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 grid place-items-center w-5 h-5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-rose-500 transition-opacity"><X className="w-3 h-3" /></button>
-            </div>
-          ))}
-        </div>
-        <p className="hint mt-2">Note:- You can resize {MAX_FILES} images at once.</p>
-      </div>
 
+        {/* Right: all controls */}
+        <div className="space-y-5">
       {/* unit + dpi */}
       <div>
         <label className="block text-sm font-medium mb-2">Resize in</label>
@@ -300,6 +303,8 @@ export default function ResizeTool() {
         className="w-full btn-primary text-white font-semibold py-4 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-70">
         {busy ? <><Loader2 className="w-5 h-5 animate-spin" /> Resizing...</> : <><Icons.Scaling className="w-5 h-5" /> Resize image{files.length > 1 ? 's' : ''}</>}
       </button>
+        </div>
+      </div>
     </Panel>
   );
 }
