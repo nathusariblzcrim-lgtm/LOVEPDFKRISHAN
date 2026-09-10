@@ -40,6 +40,7 @@ function App() {
               <Route path="/tool/crop-image" element={<ImageToolPage />} />
               <Route path="/tool/remove-background" element={<ImageToolPage />} />
               <Route path="/tool/photo-text" element={<ImageToolPage />} />
+              <Route path="/tool/resize-image" element={<ImageToolPage />} />
               <Route path="/tool/:slug" element={<ToolPage />} />
             </Routes>
           </SeoProvider>

@@ -6,6 +6,7 @@ import { ChevronRight, X, Download, Loader2, RefreshCw } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FileDrop from '../components/FileDrop';
+import ResizeTool from './ResizeTool';
 import { TOOLS, ICON_TILE } from '../mock';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api/image`;
@@ -857,6 +858,7 @@ export default function ImageToolPage() {
     'crop-image': <CropTool />,
     'remove-background': <RemoveBgTool />,
     'photo-text': <PhotoTextTool />,
+    'resize-image': <ResizeTool />,
   }[slug];
 
   const related = TOOLS.filter((t) => t.slug !== slug && t.category === 'image');

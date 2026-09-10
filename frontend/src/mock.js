@@ -45,6 +45,7 @@ export const TOOLS = [
   { slug: 'crop-image', name: 'Crop Image', desc: 'Crop photos to custom dimensions or preset sizes like square and 16:9.', icon: 'Crop', color: 'orange', category: 'image', engine: 'img-crop', ready: true },
   { slug: 'remove-background', name: 'Remove Background', desc: 'Automatically remove the background from any photo with AI.', icon: 'Eraser', color: 'violet', category: 'image', engine: 'img-removebg', ready: true },
   { slug: 'photo-text', name: 'Photo Name & DOB', desc: 'Add a name, date of birth or any text on a photo with fonts and colors.', icon: 'Baby', color: 'rose', category: 'image', engine: 'img-text', ready: true },
+  { slug: 'resize-image', name: 'Resize Image Pixel/CM', desc: 'Resize images in pixels, cm, mm or inch — batch up to 10 images, optional KB target size.', icon: 'Scaling', color: 'sky', category: 'image', engine: 'img-resize', ready: true },
 ];
 
 export const STATS = [

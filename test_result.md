@@ -131,6 +131,17 @@
 ##         - comment: "Added scaleX stretch (blue side dot + Stretch slider 50-300%) applied in preview transform AND canvas download (ctx.scale). Pink corner dot resizes (size slider max raised: name 20, dob 18). Text auto-centers in white band (even distribution 1..n/(n+1)) until user drags it (manual flag); size slider changes re-center automatically; Re-center button restores auto. Playwright verified: stretch dot 185->331px @180%, slider 200% -> 370px, center diff 1px after size change, manual drag + re-center OK, download OK."
 ##         - working: true
 ##         - working: true
+##   - task: "Resize Image Pixel/CM tool (Pi7-style reference)"
+##     implemented: true
+##     working: true
+##     file: "frontend/src/pages/ResizeTool.jsx, frontend/src/mock.js, frontend/src/App.js, frontend/src/pages/ImageToolPage.jsx"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         - working: true
+##         - agent: "main"
+##         - comment: "New client-side tool /tool/resize-image: batch up to 10 images (drag&drop + add more), units PX/CM/MM/Inch with DPI select (96-600) for physical units, Maintain Aspect Ratio (auto height from width, verified 1500->1000), quick presets (3.5x4.5cm passport / 600x600px / 2x2in / 4x6in), Compress-to-specific-KB (binary-search quality; 5MB->49KB @50KB target), output JPEG/PNG/WebP, per-file results with before->after sizes, Download all as ZIP (verified: 2 files exactly 600x600 JPEG). CM->px math verified (3.5x4.5cm @300DPI = 413x531). Mobile 390px: no overflow, full flow works. Auto-appears in Home grid + header Image Tools menu via mock.js."
 ##         - agent: "main"
 ##         - comment: "Round 3 fixes: (1) CLICK-JUMP bug fixed — startDrag now uses effPos() (visible position) instead of stale stored pos, so clicking auto-centred text no longer jumps it to image centre (verified: click keeps pos, drag starts from visible spot). (2) Dots now hidden by default, appear on text hover (opacity-0 group-hover:opacity-100), smaller (w-3 circle + w-4 pill), function intact. (3) MOBILE: stages made responsive via useMeasure() hook (photo-text crop 460px & edit 340px, remove-bg 420px now clamp to container), sticky preview only on lg. Verified @390px: photo-text full flow (upload/crop/edit/drag/download) PASS, home/compress-image/jpg-to-pdf scrollWidth==clientWidth (no real overflow; only decorative blurs clipped by overflow-hidden)."
 ##         - agent: "main"
